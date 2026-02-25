@@ -11,6 +11,7 @@ let statusHandlers: StatusHandler[] = []
 let currentStatus: ConnectionStatus = 'disconnected'
 let reconnectAttempt = 0
 let pendingRoom: string | null = null
+let messageBuffer: ServerMessage[] = []
 const RECONNECT_DELAYS = [1000, 2000, 4000, 8000]
 
 export function getConnectionStatus(): ConnectionStatus {
@@ -42,7 +43,12 @@ export function connect(): void {
 
   ws.onmessage = (e: MessageEvent) => {
     const msg: ServerMessage = JSON.parse(e.data as string)
-    for (const h of handlers) h(msg)
+    if (handlers.length === 0) {
+      // Buffer messages received before any handler registers (race with React mount)
+      messageBuffer.push(msg)
+    } else {
+      for (const h of handlers) h(msg)
+    }
   }
 
   ws.onclose = () => {
@@ -63,6 +69,14 @@ export function send(msg: ClientMessage): void {
 
 export function onMessage(handler: MessageHandler): () => void {
   handlers.push(handler)
+  // Flush any messages buffered before this handler was registered
+  if (messageBuffer.length > 0) {
+    const buffered = messageBuffer
+    messageBuffer = []
+    for (const msg of buffered) {
+      for (const h of handlers) h(msg)
+    }
+  }
   return () => { handlers = handlers.filter(h => h !== handler) }
 }
 

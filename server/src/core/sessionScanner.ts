@@ -103,8 +103,8 @@ export class SessionScanner {
 			let project = this.projects.get(hash);
 
 			if (activeSessions.size > 0 && !project) {
-				// New project with active sessions
-				const projectPath = reverseProjectHash(hash);
+				// New project with active sessions — resolve path from JSONL cwd field
+				const projectPath = this.resolveProjectPath(hash, projectDir, jsonlFiles) || reverseProjectHash(hash);
 				project = createProjectState(hash, projectPath, hash); // displayName updated below
 				this.projects.set(hash, project);
 				this.callbacks.onRoomAppeared(project);
@@ -149,6 +149,31 @@ export class SessionScanner {
 
 		// 6. Recompute display names across all active projects
 		this.recomputeDisplayNames();
+	}
+
+	/**
+	 * Read the first line of any JSONL file in the project directory
+	 * to extract the `cwd` field, which is the actual project path.
+	 */
+	private resolveProjectPath(_hash: string, projectDir: string, jsonlFiles: string[]): string | null {
+		for (const file of jsonlFiles) {
+			try {
+				const filePath = path.join(projectDir, file);
+				const fd = fs.openSync(filePath, 'r');
+				const buf = Buffer.alloc(4096);
+				const bytesRead = fs.readSync(fd, buf, 0, 4096, 0);
+				fs.closeSync(fd);
+				if (bytesRead === 0) continue;
+				const firstLine = buf.toString('utf-8', 0, bytesRead).split('\n')[0];
+				const record = JSON.parse(firstLine) as Record<string, unknown>;
+				if (typeof record.cwd === 'string') {
+					return record.cwd;
+				}
+			} catch {
+				continue;
+			}
+		}
+		return null;
 	}
 
 	private recomputeDisplayNames(): void {

@@ -25,7 +25,8 @@ export async function registerAssetRoutes(
 ): Promise<void> {
 	app.get('/api/assets/characters', async () => {
 		const assets = await ensureLoaded(assetsDir);
-		return assets.characters;
+		// Unwrap { characters: [...] } — client expects the array directly
+		return assets.characters?.characters ?? null;
 	});
 
 	app.get('/api/assets/floors', async () => {

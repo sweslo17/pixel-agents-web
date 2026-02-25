@@ -61,7 +61,6 @@ const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
 await app.register(fastifyStatic, {
 	root: clientDist,
 	prefix: '/',
-	decorateReply: false,
 });
 
 await registerAssetRoutes(app, assetsDir);
