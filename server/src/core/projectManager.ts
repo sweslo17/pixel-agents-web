@@ -62,6 +62,13 @@ export function addAgent(
 
 	project.agents.set(sessionId, agent);
 
+	// Create a proxy sink that always delegates to the current project.messageSink.
+	// This avoids the snapshot problem where startFileWatching captures a null sink
+	// before a WebSocket client joins the room and sets it.
+	const sinkProxy: MessageSink = {
+		postMessage: (msg: unknown) => project.messageSink?.postMessage(msg),
+	};
+
 	// Start file watching with the project's shared maps
 	startFileWatching(
 		sessionId,
@@ -71,7 +78,7 @@ export function addAgent(
 		project.pollingTimers,
 		project.waitingTimers,
 		project.permissionTimers,
-		project.messageSink ?? undefined,
+		sinkProxy,
 	);
 
 	// Do an initial read to catch up on any existing content
@@ -80,7 +87,7 @@ export function addAgent(
 		project.agents,
 		project.waitingTimers,
 		project.permissionTimers,
-		project.messageSink ?? undefined,
+		sinkProxy,
 	);
 }
 
