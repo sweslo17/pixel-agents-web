@@ -117,8 +117,8 @@ export function ToolOverlay({
         const isSelected = selectedId === entry.numericId
         const isHovered = hoveredId === entry.numericId
 
-        // Only show for hovered or selected agents
-        if (!isSelected && !isHovered) return null
+        // Show for active agents (running tools) automatically, plus hovered/selected
+        if (!isSelected && !isHovered && !ch.isActive) return null
 
         // Position above character
         const sittingOffset = ch.state === CharacterState.TYPE ? CHARACTER_SITTING_OFFSET_PX : 0

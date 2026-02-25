@@ -74,7 +74,7 @@ export const CAMERA_FOLLOW_SNAP_THRESHOLD = 0.5
 // ── Zoom ─────────────────────────────────────────────────────
 export const ZOOM_MIN = 1
 export const ZOOM_MAX = 10
-export const ZOOM_DEFAULT_DPR_FACTOR = 2
+export const ZOOM_DEFAULT_DPR_FACTOR = 3
 export const ZOOM_LEVEL_FADE_DELAY_MS = 1500
 export const ZOOM_LEVEL_HIDE_DELAY_MS = 2000
 export const ZOOM_LEVEL_FADE_DURATION_SEC = 0.5
@@ -120,7 +120,7 @@ export const LOBBY_ROOM_TILE_H = 8
 export const LOBBY_CORRIDOR_TILES = 2
 export const LOBBY_MAX_PER_ROW = 4
 export const LOBBY_PADDING_TILES = 3
-export const LOBBY_TITLE_TOP_MARGIN_PX = 24
+export const LOBBY_TITLE_TOP_MARGIN_PX = 48
 export const LOBBY_MIN_WIDTH_PX = 400
 
 // Colors (canvas, not CSS)
@@ -137,15 +137,15 @@ export const LOBBY_EMPTY_MESSAGE_COLOR = 'rgba(255, 255, 255, 0.5)'
 // Rendering dimensions
 export const LOBBY_DOOR_WIDTH_TILES = 2
 export const LOBBY_TITLE_Y_OFFSET_PX = 8
-export const LOBBY_TITLE_FONT_MIN_PX = 12
-export const LOBBY_TITLE_FONT_FACTOR = 10
-export const LOBBY_ROOM_NAME_FONT_MIN_PX = 8
-export const LOBBY_ROOM_NAME_FONT_FACTOR = 7
-export const LOBBY_ROOM_NAME_GAP_FACTOR = 2
-export const LOBBY_EMPTY_LABEL_FONT_MIN_PX = 6
-export const LOBBY_EMPTY_LABEL_FONT_FACTOR = 5
-export const LOBBY_HINT_FONT_MIN_PX = 7
-export const LOBBY_HINT_FONT_FACTOR = 6
+export const LOBBY_TITLE_FONT_MIN_PX = 24
+export const LOBBY_TITLE_FONT_FACTOR = 24
+export const LOBBY_ROOM_NAME_FONT_MIN_PX = 14
+export const LOBBY_ROOM_NAME_FONT_FACTOR = 14
+export const LOBBY_ROOM_NAME_GAP_FACTOR = 4
+export const LOBBY_EMPTY_LABEL_FONT_MIN_PX = 10
+export const LOBBY_EMPTY_LABEL_FONT_FACTOR = 8
+export const LOBBY_HINT_FONT_MIN_PX = 10
+export const LOBBY_HINT_FONT_FACTOR = 10
 export const LOBBY_HINT_BOTTOM_GAP_FACTOR = 4
 
 // Agent dot silhouettes

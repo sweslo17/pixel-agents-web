@@ -12,8 +12,6 @@ Each Claude Code session running on your machine is detected automatically and a
 
 > Based on [Pixel Agents](https://github.com/pablodelucca/pixel-agents) by [Pablo De Lucca](https://github.com/pablodelucca), originally a VS Code extension. Converted to a standalone web app with a Node.js server + React SPA.
 
-![Pixel Agents screenshot](webview-ui/public/Screenshot.jpg)
-
 ### Features
 
 - **Auto-discovery** — scans `~/.claude/projects/` every 3 seconds; no manual setup needed

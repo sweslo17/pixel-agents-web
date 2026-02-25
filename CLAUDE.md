@@ -34,10 +34,14 @@ server/src/                     — Fastify HTTP + WebSocket server (Node.js)
 
 client/src/                     — React SPA (Vite)
   main.tsx                      — Entry: connect WS, render App
+  index.css                     — Global styles, pixel font @font-face, CSS variables (--pixel-*)
   App.tsx                       — Router: lobby vs room, connection status, NewRoomToast
   RoomView.tsx                  — Composition root for room: hooks + OfficeCanvas + overlays
   wsClient.ts                   — WS singleton: connect, send, onMessage, message buffering
   assetFetcher.ts               — HTTP fetch for sprite assets
+  constants.ts                  — Game constants (grid, animation, rendering, camera, zoom, editor, sound)
+  notificationSound.ts          — Web Audio API chime on agent turn completion
+  fonts/                        — FS Pixel Sans Unicode font file
   hooks/
     useWebSocket.ts             — Room-level WS handler, agent state, asset loading, AgentIdMapper
     useLobby.ts                 — Lobby-level WS handler, room list state

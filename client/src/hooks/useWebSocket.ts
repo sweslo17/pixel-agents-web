@@ -453,6 +453,10 @@ export function useWebSocket(
         }
         pendingAgents = []
         clearInterval(flushInterval)
+        // Persist seat assignments so characters stay consistent across re-entries
+        if (os.characters.size > 0) {
+          buildSeatPayload(os, mapperRef.current, projectHashRef.current)
+        }
       }
     }, 100)
 
