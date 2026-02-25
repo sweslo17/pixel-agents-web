@@ -1,25 +1,42 @@
 import { useState, useEffect } from 'react'
 import type { ToolActivity } from '../types.js'
 import type { OfficeState } from '../engine/officeState.js'
-import type { SubagentCharacter } from '../../hooks/useExtensionMessages.js'
+import type { SubagentCharacter } from '../../hooks/useWebSocket.js'
+import { getNumericAgentId } from '../../hooks/useWebSocket.js'
 import { TILE_SIZE, CharacterState } from '../types.js'
 import { TOOL_OVERLAY_VERTICAL_OFFSET, CHARACTER_SITTING_OFFSET_PX } from '../../constants.js'
 
 interface ToolOverlayProps {
   officeState: OfficeState
-  agents: number[]
-  agentTools: Record<number, ToolActivity[]>
+  agents: string[]
+  agentTools: Record<string, ToolActivity[]>
   subagentCharacters: SubagentCharacter[]
   containerRef: React.RefObject<HTMLDivElement | null>
   zoom: number
   panRef: React.RefObject<{ x: number; y: number }>
-  onCloseAgent: (id: number) => void
 }
+
+/** Entry combining a string agent ID with the numeric ID used in OfficeState */
+interface AgentEntry {
+  stringId: string
+  numericId: number
+  isSub: false
+}
+
+interface SubEntry {
+  stringId: string
+  numericId: number
+  isSub: true
+  parentAgentId: string
+  label: string
+}
+
+type OverlayEntry = AgentEntry | SubEntry
 
 /** Derive a short human-readable activity string from tools/status */
 function getActivityText(
-  agentId: number,
-  agentTools: Record<number, ToolActivity[]>,
+  agentId: string,
+  agentTools: Record<string, ToolActivity[]>,
   isActive: boolean,
 ): string {
   const tools = agentTools[agentId]
@@ -30,7 +47,7 @@ function getActivityText(
       if (activeTool.permissionWait) return 'Needs approval'
       return activeTool.status
     }
-    // All tools done but agent still active (mid-turn) — keep showing last tool status
+    // All tools done but agent still active (mid-turn) -- keep showing last tool status
     if (isActive) {
       const lastTool = tools[tools.length - 1]
       if (lastTool) return lastTool.status
@@ -48,7 +65,6 @@ export function ToolOverlay({
   containerRef,
   zoom,
   panRef,
-  onCloseAgent,
 }: ToolOverlayProps) {
   const [, setTick] = useState(0)
   useEffect(() => {
@@ -76,18 +92,30 @@ export function ToolOverlay({
   const selectedId = officeState.selectedAgentId
   const hoveredId = officeState.hoveredAgentId
 
-  // All character IDs
-  const allIds = [...agents, ...subagentCharacters.map((s) => s.id)]
+  // Build overlay entries with both string and numeric IDs
+  const entries: OverlayEntry[] = [
+    ...agents.map((id): AgentEntry => ({
+      stringId: id,
+      numericId: getNumericAgentId(id),
+      isSub: false,
+    })),
+    ...subagentCharacters.map((s): SubEntry => ({
+      stringId: s.parentAgentId,
+      numericId: s.id,
+      isSub: true,
+      parentAgentId: s.parentAgentId,
+      label: s.label,
+    })),
+  ]
 
   return (
     <>
-      {allIds.map((id) => {
-        const ch = officeState.characters.get(id)
+      {entries.map((entry) => {
+        const ch = officeState.characters.get(entry.numericId)
         if (!ch) return null
 
-        const isSelected = selectedId === id
-        const isHovered = hoveredId === id
-        const isSub = ch.isSubagent
+        const isSelected = selectedId === entry.numericId
+        const isHovered = hoveredId === entry.numericId
 
         // Only show for hovered or selected agents
         if (!isSelected && !isHovered) return null
@@ -98,21 +126,20 @@ export function ToolOverlay({
         const screenY = (deviceOffsetY + (ch.y + sittingOffset - TOOL_OVERLAY_VERTICAL_OFFSET) * zoom) / dpr
 
         // Get activity text
-        const subHasPermission = isSub && ch.bubbleType === 'permission'
+        const subHasPermission = entry.isSub && ch.bubbleType === 'permission'
         let activityText: string
-        if (isSub) {
+        if (entry.isSub) {
           if (subHasPermission) {
             activityText = 'Needs approval'
           } else {
-            const sub = subagentCharacters.find((s) => s.id === id)
-            activityText = sub ? sub.label : 'Subtask'
+            activityText = entry.label
           }
         } else {
-          activityText = getActivityText(id, agentTools, ch.isActive)
+          activityText = getActivityText(entry.stringId, agentTools, ch.isActive)
         }
 
         // Determine dot color
-        const tools = agentTools[id]
+        const tools = entry.isSub ? undefined : agentTools[entry.stringId]
         const hasPermission = subHasPermission || tools?.some((t) => t.permissionWait && !t.done)
         const hasActiveTools = tools?.some((t) => !t.done)
         const isActive = ch.isActive
@@ -126,7 +153,7 @@ export function ToolOverlay({
 
         return (
           <div
-            key={id}
+            key={entry.numericId}
             style={{
               position: 'absolute',
               left: screenX,
@@ -135,7 +162,7 @@ export function ToolOverlay({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              pointerEvents: isSelected ? 'auto' : 'none',
+              pointerEvents: 'none',
               zIndex: isSelected ? 'var(--pixel-overlay-selected-z)' : 'var(--pixel-overlay-z)',
             }}
           >
@@ -149,7 +176,7 @@ export function ToolOverlay({
                   ? '2px solid var(--pixel-border-light)'
                   : '2px solid var(--pixel-border)',
                 borderRadius: 0,
-                padding: isSelected ? '3px 6px 3px 8px' : '3px 8px',
+                padding: '3px 8px',
                 boxShadow: 'var(--pixel-shadow)',
                 whiteSpace: 'nowrap',
                 maxWidth: 220,
@@ -169,43 +196,15 @@ export function ToolOverlay({
               )}
               <span
                 style={{
-                  fontSize: isSub ? '20px' : '22px',
-                  fontStyle: isSub ? 'italic' : undefined,
-                  color: 'var(--vscode-foreground)',
+                  fontSize: entry.isSub ? '20px' : '22px',
+                  fontStyle: entry.isSub ? 'italic' : undefined,
+                  color: 'var(--pixel-text)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                 }}
               >
                 {activityText}
               </span>
-              {isSelected && !isSub && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onCloseAgent(id)
-                  }}
-                  title="Close agent"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--pixel-close-text)',
-                    cursor: 'pointer',
-                    padding: '0 2px',
-                    fontSize: '26px',
-                    lineHeight: 1,
-                    marginLeft: 2,
-                    flexShrink: 0,
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.color = 'var(--pixel-close-hover)'
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.color = 'var(--pixel-close-text)'
-                  }}
-                >
-                  ×
-                </button>
-              )}
             </div>
           </div>
         )
