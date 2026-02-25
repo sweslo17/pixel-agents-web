@@ -28,6 +28,16 @@ export class WsBroadcaster {
 		}
 	}
 
+	/** Send to ALL connected clients regardless of lobby/room subscription */
+	broadcastAll(msg: ServerMessage): void {
+		const data = JSON.stringify(msg);
+		for (const client of this.clients) {
+			if (client.ws.readyState === 1) {
+				client.ws.send(data);
+			}
+		}
+	}
+
 	broadcastRoom(projectHash: string, msg: ServerMessage): void {
 		const data = JSON.stringify(msg);
 		for (const client of this.clients) {

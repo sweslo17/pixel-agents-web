@@ -14,6 +14,10 @@ export type LobbyMessage =
 	| { type: 'roomAppeared'; room: RoomSummary }
 	| { type: 'roomDisappeared'; projectHash: string };
 
+// Server -> Client (Global — sent regardless of lobby/room subscription)
+export type GlobalMessage =
+	| { type: 'newRoomNotification'; projectHash: string; displayName: string };
+
 // Server -> Client (Room)
 export type RoomMessage =
 	| { type: 'roomState'; agents: AgentSnapshot[]; layout: Record<string, unknown> | null }
@@ -32,4 +36,4 @@ export type RoomMessage =
 	| { type: 'layoutLoaded'; layout: Record<string, unknown> | null }
 	| { type: 'settingsLoaded'; soundEnabled: boolean };
 
-export type ServerMessage = LobbyMessage | RoomMessage;
+export type ServerMessage = LobbyMessage | RoomMessage | GlobalMessage;

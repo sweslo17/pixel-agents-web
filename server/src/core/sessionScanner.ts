@@ -10,6 +10,8 @@ export interface ScannerCallbacks {
 	onRoomDisappeared: (hash: string) => void;
 	onAgentAppeared: (hash: string, sessionId: string) => void;
 	onAgentDisappeared: (hash: string, sessionId: string) => void;
+	/** Fires after display names are recomputed, with newly appeared rooms this scan cycle */
+	onNewRoomReady?: (project: ProjectState) => void;
 }
 
 /**
@@ -60,6 +62,7 @@ export class SessionScanner {
 
 		const now = Date.now();
 		const currentHashes = new Set<string>();
+		const newRooms: ProjectState[] = [];
 
 		// 1. Scan all project directories
 		let entries: fs.Dirent[];
@@ -108,6 +111,7 @@ export class SessionScanner {
 				project = createProjectState(hash, projectPath, hash); // displayName updated below
 				this.projects.set(hash, project);
 				this.callbacks.onRoomAppeared(project);
+				newRooms.push(project);
 			}
 
 			if (project) {
@@ -149,6 +153,13 @@ export class SessionScanner {
 
 		// 6. Recompute display names across all active projects
 		this.recomputeDisplayNames();
+
+		// 7. Notify about new rooms (after display names are computed)
+		if (this.callbacks.onNewRoomReady) {
+			for (const project of newRooms) {
+				this.callbacks.onNewRoomReady(project);
+			}
+		}
 	}
 
 	/**

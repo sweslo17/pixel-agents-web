@@ -52,6 +52,14 @@ const scanner = new SessionScanner({
 			});
 		}
 	},
+	onNewRoomReady: (project) => {
+		// Fires after display names are computed — notify ALL clients
+		broadcaster.broadcastAll({
+			type: 'newRoomNotification',
+			projectHash: project.projectHash,
+			displayName: project.displayName,
+		});
+	},
 });
 
 await app.register(fastifyWebSocket);

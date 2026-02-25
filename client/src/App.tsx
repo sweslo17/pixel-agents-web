@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { LobbyCanvas } from './lobby/LobbyCanvas.js'
 import { RoomView } from './RoomView.js'
+import { NewRoomToast } from './components/NewRoomToast.js'
 import { send } from './wsClient.js'
 import { useConnectionStatus } from './hooks/useConnectionStatus.js'
 
@@ -66,8 +67,13 @@ export function App() {
     )
   }
 
-  if (currentRoom) {
-    return <RoomView projectHash={currentRoom} onBack={exitRoom} />
-  }
-  return <LobbyCanvas onEnterRoom={enterRoom} />
+  return (
+    <>
+      {currentRoom
+        ? <RoomView projectHash={currentRoom} onBack={exitRoom} />
+        : <LobbyCanvas onEnterRoom={enterRoom} />
+      }
+      <NewRoomToast currentRoom={currentRoom} onNavigate={enterRoom} />
+    </>
+  )
 }
