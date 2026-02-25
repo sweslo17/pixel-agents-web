@@ -177,7 +177,10 @@ export function useWebSocket(
           os.rebuildFromLayout(layout)
           onLayoutLoaded?.(layout)
         } else {
-          onLayoutLoaded?.(os.getLayout())
+          // No saved layout — persist the randomly-generated default so it stays fixed
+          const generated = os.getLayout()
+          send({ type: 'saveLayout', projectHash: projectHashRef.current, layout: generated as unknown as Record<string, unknown> })
+          onLayoutLoaded?.(generated)
         }
 
         // Process agents from roomState
