@@ -7,6 +7,8 @@ interface BottomToolbarProps {
   isDebugMode: boolean
   onToggleDebugMode: () => void
   onBackToLobby?: () => void
+  onExportLayout?: () => string | null
+  onImportLayout?: (layout: unknown) => void
 }
 
 const panelStyle: React.CSSProperties = {
@@ -47,6 +49,8 @@ export function BottomToolbar({
   isDebugMode,
   onToggleDebugMode,
   onBackToLobby,
+  onExportLayout,
+  onImportLayout,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -109,6 +113,8 @@ export function BottomToolbar({
           onClose={() => setIsSettingsOpen(false)}
           isDebugMode={isDebugMode}
           onToggleDebugMode={onToggleDebugMode}
+          onExportLayout={onExportLayout}
+          onImportLayout={onImportLayout}
         />
       </div>
     </div>
