@@ -10,9 +10,12 @@ export function computeDisplayNames(paths: string[]): Map<string, string> {
 	const result = new Map<string, string>();
 	if (paths.length === 0) return result;
 
+	// Deduplicate paths — duplicates would cause an infinite collision loop
+	const uniquePaths = [...new Set(paths)];
+
 	// Track how many segments each path is currently showing
 	const segmentCounts = new Map<string, number>();
-	for (const p of paths) {
+	for (const p of uniquePaths) {
 		segmentCounts.set(p, 1);
 	}
 
@@ -34,7 +37,7 @@ export function computeDisplayNames(paths: string[]): Map<string, string> {
 
 		// Build current name -> list of paths with that name
 		const nameToPathsMap = new Map<string, string[]>();
-		for (const p of paths) {
+		for (const p of uniquePaths) {
 			const count = segmentCounts.get(p)!;
 			const name = getSuffix(p, count);
 			const list = nameToPathsMap.get(name);
@@ -49,17 +52,24 @@ export function computeDisplayNames(paths: string[]): Map<string, string> {
 		for (const [, collisionPaths] of nameToPathsMap) {
 			if (collisionPaths.length > 1) {
 				hasCollision = true;
+				let madeProgress = false;
 				for (const p of collisionPaths) {
 					const segments = getSegments(p);
 					const current = segmentCounts.get(p)!;
-					// Don't exceed total segment count
-					segmentCounts.set(p, Math.min(current + 1, segments.length));
+					const next = Math.min(current + 1, segments.length);
+					if (next > current) madeProgress = true;
+					segmentCounts.set(p, next);
+				}
+				// All paths maxed out their segments — stop to prevent infinite loop
+				if (!madeProgress) {
+					hasCollision = false;
+					break;
 				}
 			}
 		}
 	}
 
-	// Build final result
+	// Build final result (map back to all original paths including duplicates)
 	for (const p of paths) {
 		const count = segmentCounts.get(p)!;
 		result.set(p, getSuffix(p, count));

@@ -48,31 +48,46 @@ export interface WebSocketState {
 }
 
 /**
- * Maps a string session UUID to a stable positive integer for OfficeState.
- * Maintains a persistent map so the same string always gets the same number.
+ * Per-room agent ID mapping. Maps string session UUIDs to stable positive
+ * integers for OfficeState. Scoped per room to prevent cross-room leaks.
  */
-const agentIdMap = new Map<string, number>()
-let nextNumericId = 1
+class AgentIdMapper {
+  private map = new Map<string, number>()
+  private next = 1
 
-function toNumericId(stringId: string): number {
-  let num = agentIdMap.get(stringId)
-  if (num === undefined) {
-    num = nextNumericId++
-    agentIdMap.set(stringId, num)
+  toNumericId(stringId: string): number {
+    let num = this.map.get(stringId)
+    if (num === undefined) {
+      num = this.next++
+      this.map.set(stringId, num)
+    }
+    return num
   }
-  return num
+
+  reverseNumericId(numId: number): string | undefined {
+    for (const [strId, n] of this.map) {
+      if (n === numId) return strId
+    }
+    return undefined
+  }
+
+  clear(): void {
+    this.map.clear()
+    this.next = 1
+  }
 }
 
-function saveAgentSeats(os: OfficeState, projectHash: string): void {
+function buildSeatPayload(
+  os: OfficeState,
+  mapper: AgentIdMapper,
+  projectHash: string,
+): void {
   const seats: Record<string, { palette: number; hueShift: number; seatId: string | null }> = {}
   for (const ch of os.characters.values()) {
     if (ch.isSubagent) continue
-    // Reverse-lookup: find string ID for this numeric character ID
-    for (const [strId, numId] of agentIdMap) {
-      if (numId === ch.id) {
-        seats[strId] = { palette: ch.palette, hueShift: ch.hueShift, seatId: ch.seatId }
-        break
-      }
+    const strId = mapper.reverseNumericId(ch.id)
+    if (strId) {
+      seats[strId] = { palette: ch.palette, hueShift: ch.hueShift, seatId: ch.seatId }
     }
   }
   send({ type: 'saveAgentSeats', projectHash, seats })
@@ -96,41 +111,58 @@ export function useWebSocket(
   const projectHashRef = useRef(projectHash)
   projectHashRef.current = projectHash
 
+  // Per-room agent ID mapping — cleared when room changes
+  const mapperRef = useRef<AgentIdMapper>(new AgentIdMapper())
+
   // Stable callback for saving seats
   const saveSeats = useCallback(() => {
     const os = getOfficeState()
     if (os.characters.size > 0) {
-      saveAgentSeats(os, projectHashRef.current)
+      buildSeatPayload(os, mapperRef.current, projectHashRef.current)
     }
   }, [getOfficeState])
 
   useEffect(() => {
+    // Clear ID mapping when room changes and set active mapper
+    mapperRef.current.clear()
+    activeMapper = mapperRef.current
+
     // Buffer agents from roomState until layout is applied
     let pendingAgents: AgentSnapshot[] = []
     let assetsLoaded = false
 
     // Load all assets via HTTP (replaces extension postMessage asset loading)
     loadAllAssets().then((assets) => {
-      const characters = assets.characters as Array<{ down: string[][][]; up: string[][][]; right: string[][][] }>
-      console.log(`[Client] Loaded ${characters.length} pre-colored character sprites`)
-      setCharacterTemplates(characters)
+      if (assets.characters) {
+        const characters = assets.characters as Array<{ down: string[][][]; up: string[][][]; right: string[][][] }>
+        console.log(`[Client] Loaded ${characters.length} pre-colored character sprites`)
+        setCharacterTemplates(characters)
+      }
 
-      const floors = assets.floors as string[][][]
-      console.log(`[Client] Loaded ${floors.length} floor tile patterns`)
-      setFloorSprites(floors)
+      if (assets.floors) {
+        const floors = assets.floors as string[][][]
+        console.log(`[Client] Loaded ${floors.length} floor tile patterns`)
+        setFloorSprites(floors)
+      }
 
-      const walls = assets.walls as string[][][]
-      console.log(`[Client] Loaded ${walls.length} wall tile sprites`)
-      setWallSprites(walls)
+      if (assets.walls) {
+        const walls = assets.walls as string[][][]
+        console.log(`[Client] Loaded ${walls.length} wall tile sprites`)
+        setWallSprites(walls)
+      }
 
-      const furniture = assets.furniture as { catalog: FurnitureAsset[]; sprites: Record<string, string[][]> }
-      console.log(`[Client] Loaded ${furniture.catalog.length} furniture assets`)
-      buildDynamicCatalog(furniture)
-      setLoadedAssets(furniture)
+      if (assets.furniture) {
+        const furniture = assets.furniture as { catalog: FurnitureAsset[]; sprites: Record<string, string[][]> }
+        console.log(`[Client] Loaded ${furniture.catalog.length} furniture assets`)
+        buildDynamicCatalog(furniture)
+        setLoadedAssets(furniture)
+      }
 
       assetsLoaded = true
     }).catch((err) => {
       console.error('[Client] Failed to load assets:', err)
+      // Mark as loaded even on failure so agents aren't buffered forever
+      assetsLoaded = true
     })
 
     const unsub = onMessage((msg) => {
@@ -155,7 +187,7 @@ export function useWebSocket(
           pendingAgents = incoming
         } else {
           for (const agent of incoming) {
-            const numId = toNumericId(agent.id)
+            const numId = mapperRef.current.toNumericId(agent.id)
             os.addAgent(numId, agent.palette, agent.hueShift, agent.seatId ?? undefined, true)
             // Apply existing tool state
             for (const tool of agent.activeTools) {
@@ -190,7 +222,7 @@ export function useWebSocket(
         layoutReadyRef.current = true
         setLayoutReady(true)
         if (os.characters.size > 0) {
-          saveAgentSeats(os, projectHashRef.current)
+          buildSeatPayload(os, mapperRef.current, projectHashRef.current)
         }
       } else if (msg.type === 'layoutLoaded') {
         // External layout update (from another client editing)
@@ -206,13 +238,13 @@ export function useWebSocket(
         }
       } else if (msg.type === 'agentCreated') {
         const id = msg.id
-        const numId = toNumericId(id)
+        const numId = mapperRef.current.toNumericId(id)
         setAgents((prev) => (prev.includes(id) ? prev : [...prev, id]))
         os.addAgent(numId)
-        saveAgentSeats(os, projectHashRef.current)
+        buildSeatPayload(os, mapperRef.current, projectHashRef.current)
       } else if (msg.type === 'agentClosed') {
         const id = msg.id
-        const numId = toNumericId(id)
+        const numId = mapperRef.current.toNumericId(id)
         setAgents((prev) => prev.filter((a) => a !== id))
         setAgentTools((prev) => {
           if (!(id in prev)) return prev
@@ -237,7 +269,7 @@ export function useWebSocket(
         os.removeAgent(numId)
       } else if (msg.type === 'agentToolStart') {
         const id = msg.id
-        const numId = toNumericId(id)
+        const numId = mapperRef.current.toNumericId(id)
         const toolId = msg.toolId
         const status = msg.status
         setAgentTools((prev) => {
@@ -271,7 +303,7 @@ export function useWebSocket(
         })
       } else if (msg.type === 'agentToolsClear') {
         const id = msg.id
-        const numId = toNumericId(id)
+        const numId = mapperRef.current.toNumericId(id)
         setAgentTools((prev) => {
           if (!(id in prev)) return prev
           const next = { ...prev }
@@ -290,7 +322,7 @@ export function useWebSocket(
         os.clearPermissionBubble(numId)
       } else if (msg.type === 'agentStatus') {
         const id = msg.id
-        const numId = toNumericId(id)
+        const numId = mapperRef.current.toNumericId(id)
         const status = msg.status
         setAgentStatuses((prev) => {
           if (status === 'active') {
@@ -308,7 +340,7 @@ export function useWebSocket(
         }
       } else if (msg.type === 'agentToolPermission') {
         const id = msg.id
-        const numId = toNumericId(id)
+        const numId = mapperRef.current.toNumericId(id)
         setAgentTools((prev) => {
           const list = prev[id]
           if (!list) return prev
@@ -320,7 +352,7 @@ export function useWebSocket(
         os.showPermissionBubble(numId)
       } else if (msg.type === 'subagentToolPermission') {
         const id = msg.id
-        const numId = toNumericId(id)
+        const numId = mapperRef.current.toNumericId(id)
         const parentToolId = msg.parentToolId
         const subId = os.getSubagentId(numId, parentToolId)
         if (subId !== null) {
@@ -328,7 +360,7 @@ export function useWebSocket(
         }
       } else if (msg.type === 'agentToolPermissionClear') {
         const id = msg.id
-        const numId = toNumericId(id)
+        const numId = mapperRef.current.toNumericId(id)
         setAgentTools((prev) => {
           const list = prev[id]
           if (!list) return prev
@@ -348,7 +380,7 @@ export function useWebSocket(
         }
       } else if (msg.type === 'subagentToolStart') {
         const id = msg.id
-        const numId = toNumericId(id)
+        const numId = mapperRef.current.toNumericId(id)
         const parentToolId = msg.parentToolId
         const toolId = msg.toolId
         const status = msg.status
@@ -380,7 +412,7 @@ export function useWebSocket(
         })
       } else if (msg.type === 'subagentClear') {
         const id = msg.id
-        const numId = toNumericId(id)
+        const numId = mapperRef.current.toNumericId(id)
         const parentToolId = msg.parentToolId
         setSubagentTools((prev) => {
           const agentSubs = prev[id]
@@ -408,7 +440,7 @@ export function useWebSocket(
       if (assetsLoaded && pendingAgents.length > 0) {
         const os = getOfficeState()
         for (const agent of pendingAgents) {
-          const numId = toNumericId(agent.id)
+          const numId = mapperRef.current.toNumericId(agent.id)
           os.addAgent(numId, agent.palette, agent.hueShift, agent.seatId ?? undefined, true)
           for (const tool of agent.activeTools) {
             const toolName = extractToolName(tool.status)
@@ -427,13 +459,21 @@ export function useWebSocket(
     return () => {
       unsub()
       clearInterval(flushInterval)
+      activeMapper = null
     }
   }, [getOfficeState, onLayoutLoaded, isEditDirty, saveSeats])
 
   return { agents, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets }
 }
 
+/**
+ * Module-level reference to the active room's mapper.
+ * Only one room is active at a time, so this is safe.
+ */
+let activeMapper: AgentIdMapper | null = null
+
 /** Convert a string agent ID to its numeric counterpart for OfficeState */
 export function getNumericAgentId(stringId: string): number {
-  return toNumericId(stringId)
+  if (!activeMapper) return 0
+  return activeMapper.toNumericId(stringId)
 }

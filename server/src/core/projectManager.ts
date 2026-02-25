@@ -111,20 +111,34 @@ export function removeAgent(
 
 /**
  * Converts a runtime AgentState into a serializable AgentSnapshot
- * suitable for sending over the wire.
+ * suitable for sending over the wire. Optionally includes persisted
+ * seat/palette data if available.
  */
-export function getAgentSnapshot(agent: AgentState): AgentSnapshot {
+export function getAgentSnapshot(
+	agent: AgentState,
+	seatData?: unknown,
+): AgentSnapshot {
 	const activeTools: Array<{ toolId: string; status: string }> = [];
 	for (const toolId of agent.activeToolIds) {
 		const status = agent.activeToolStatuses.get(toolId) || '';
 		activeTools.push({ toolId, status });
 	}
 
-	return {
+	const snapshot: AgentSnapshot = {
 		id: agent.id,
 		isWaiting: agent.isWaiting,
 		activeTools,
 	};
+
+	// Merge persisted seat data if available
+	if (seatData && typeof seatData === 'object') {
+		const data = seatData as Record<string, unknown>;
+		if (typeof data.palette === 'number') snapshot.palette = data.palette;
+		if (typeof data.hueShift === 'number') snapshot.hueShift = data.hueShift;
+		if (typeof data.seatId === 'string') snapshot.seatId = data.seatId;
+	}
+
+	return snapshot;
 }
 
 /**

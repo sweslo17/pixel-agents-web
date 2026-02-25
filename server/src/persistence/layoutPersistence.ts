@@ -90,6 +90,47 @@ export function loadLayout(
 }
 
 /**
+ * Get the path to a project's seat assignments file.
+ */
+function getSeatFilePath(projectHash: string): string {
+	return path.join(os.homedir(), LAYOUT_DIR, LAYOUTS_SUBDIR, projectHash + '.seats.json');
+}
+
+/**
+ * Read persisted seat assignments for a project.
+ * Returns a map of sessionId -> { palette, hueShift, seatId }.
+ */
+export function readSeatAssignments(projectHash: string): Record<string, unknown> | null {
+	const filePath = getSeatFilePath(projectHash);
+	try {
+		if (!fs.existsSync(filePath)) return null;
+		const raw = fs.readFileSync(filePath, 'utf-8');
+		return JSON.parse(raw) as Record<string, unknown>;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Write seat assignments for a project (atomic via .tmp + rename).
+ */
+export function writeSeatAssignments(projectHash: string, seats: Record<string, unknown>): void {
+	const filePath = getSeatFilePath(projectHash);
+	const dir = path.dirname(filePath);
+	try {
+		if (!fs.existsSync(dir)) {
+			fs.mkdirSync(dir, { recursive: true });
+		}
+		const json = JSON.stringify(seats, null, 2);
+		const tmpPath = filePath + '.tmp';
+		fs.writeFileSync(tmpPath, json, 'utf-8');
+		fs.renameSync(tmpPath, filePath);
+	} catch (err) {
+		console.error('[Pixel Agents] Failed to write seat assignments:', err);
+	}
+}
+
+/**
  * Watch a per-project layout file for external changes.
  * Uses hybrid fs.watch + polling (same pattern as JSONL watching).
  */

@@ -19,9 +19,7 @@ interface RoomViewProps {
   onBack: () => void
 }
 
-// Game state lives outside React -- updated imperatively by message handlers.
-// We scope these per-component instance via refs in the component body.
-const editorState = new EditorState()
+// editorState is scoped per room via useRef inside RoomView
 
 const actionBarBtnStyle: React.CSSProperties = {
   padding: '4px 10px',
@@ -115,6 +113,9 @@ function EditActionBar({ editor, editorState: es }: { editor: ReturnType<typeof 
 
 export function RoomView({ projectHash, onBack }: RoomViewProps) {
   const officeStateRef = useRef<OfficeState | null>(null)
+  const editorStateRef = useRef<EditorState | null>(null)
+  if (!editorStateRef.current) editorStateRef.current = new EditorState()
+  const editorState = editorStateRef.current
 
   const getOfficeState = useCallback((): OfficeState => {
     if (!officeStateRef.current) {
