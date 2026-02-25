@@ -111,3 +111,52 @@ export const CHARACTER_HIT_HALF_WIDTH = 8
 export const CHARACTER_HIT_HEIGHT = 24
 export const TOOL_OVERLAY_VERTICAL_OFFSET = 32
 export const PULSE_ANIMATION_DURATION_SEC = 1.5
+
+// ── Lobby Scene ───────────────────────────────────────────────
+// Grid
+export const LOBBY_TILE_SIZE = 16
+export const LOBBY_ROOM_TILE_W = 10
+export const LOBBY_ROOM_TILE_H = 8
+export const LOBBY_CORRIDOR_TILES = 2
+export const LOBBY_MAX_PER_ROW = 4
+export const LOBBY_PADDING_TILES = 3
+export const LOBBY_TITLE_TOP_MARGIN_PX = 24
+export const LOBBY_MIN_WIDTH_PX = 400
+
+// Colors (canvas, not CSS)
+export const LOBBY_BG_COLOR = '#1a1a2e'
+export const LOBBY_WALL_COLOR = '#3a3a5e'
+export const LOBBY_ROOM_FLOOR_COLOR = '#252540'
+export const LOBBY_HIGHLIGHT_COLOR = 'rgba(90, 140, 255, 0.2)'
+export const LOBBY_AGENT_COLORS = ['#5ac88c', '#5a8cff', '#ff5a8c', '#ffa55a', '#c85aff', '#5affc8']
+export const LOBBY_TITLE_COLOR = '#5a8cff'
+export const LOBBY_TEXT_COLOR = 'rgba(255, 255, 255, 0.7)'
+export const LOBBY_DIM_TEXT_COLOR = 'rgba(255, 255, 255, 0.3)'
+export const LOBBY_EMPTY_MESSAGE_COLOR = 'rgba(255, 255, 255, 0.5)'
+
+// Rendering dimensions
+export const LOBBY_DOOR_WIDTH_TILES = 2
+export const LOBBY_TITLE_Y_OFFSET_PX = 8
+export const LOBBY_TITLE_FONT_MIN_PX = 12
+export const LOBBY_TITLE_FONT_FACTOR = 10
+export const LOBBY_ROOM_NAME_FONT_MIN_PX = 8
+export const LOBBY_ROOM_NAME_FONT_FACTOR = 7
+export const LOBBY_ROOM_NAME_GAP_FACTOR = 2
+export const LOBBY_EMPTY_LABEL_FONT_MIN_PX = 6
+export const LOBBY_EMPTY_LABEL_FONT_FACTOR = 5
+export const LOBBY_HINT_FONT_MIN_PX = 7
+export const LOBBY_HINT_FONT_FACTOR = 6
+export const LOBBY_HINT_BOTTOM_GAP_FACTOR = 4
+
+// Agent dot silhouettes
+export const LOBBY_DOT_SIZE_MIN_PX = 3
+export const LOBBY_DOT_SIZE_FACTOR = 0.5
+export const LOBBY_DOT_SPACING_FACTOR = 2.5
+export const LOBBY_DOT_MARGIN_FACTOR = 2
+export const LOBBY_DOT_HEAD_FACTOR = 0.6
+export const LOBBY_DOT_HEAD_Y_FACTOR = 0.8
+export const LOBBY_DOT_BODY_W_FACTOR = 0.4
+
+// Canvas
+export const LOBBY_MIN_CANVAS_OFFSET_Y = 20
+export const LOBBY_EMPTY_MESSAGE_FONT_SIZE_PX = 16
