@@ -1,18 +1,39 @@
 import type { ClientMessage, ServerMessage } from '@pixel-agents/shared'
 
+export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
+
 type MessageHandler = (msg: ServerMessage) => void
+type StatusHandler = (status: ConnectionStatus) => void
 
 let ws: WebSocket | null = null
 let handlers: MessageHandler[] = []
+let statusHandlers: StatusHandler[] = []
+let currentStatus: ConnectionStatus = 'disconnected'
 let reconnectAttempt = 0
 let pendingRoom: string | null = null
 const RECONNECT_DELAYS = [1000, 2000, 4000, 8000]
 
+export function getConnectionStatus(): ConnectionStatus {
+  return currentStatus
+}
+
+export function onStatusChange(handler: StatusHandler): () => void {
+  statusHandlers.push(handler)
+  return () => { statusHandlers = statusHandlers.filter(h => h !== handler) }
+}
+
+function setStatus(status: ConnectionStatus): void {
+  currentStatus = status
+  for (const h of statusHandlers) h(status)
+}
+
 export function connect(): void {
+  setStatus('connecting')
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
   ws = new WebSocket(`${protocol}//${location.host}/ws`)
 
   ws.onopen = () => {
+    setStatus('connected')
     reconnectAttempt = 0
     if (pendingRoom) {
       send({ type: 'joinRoom', projectHash: pendingRoom })
@@ -25,6 +46,7 @@ export function connect(): void {
   }
 
   ws.onclose = () => {
+    setStatus('disconnected')
     const delay = RECONNECT_DELAYS[Math.min(reconnectAttempt, RECONNECT_DELAYS.length - 1)]
     reconnectAttempt++
     setTimeout(connect, delay)

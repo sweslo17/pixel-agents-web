@@ -188,8 +188,18 @@ export function RoomView({ projectHash, onBack }: RoomViewProps) {
 
   if (!layoutReady) {
     return (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--pixel-text)' }}>
-        Loading...
+      <div style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--pixel-bg)',
+        color: 'var(--pixel-text)',
+        fontFamily: '"FS Pixel Sans", monospace',
+        fontSize: '16px',
+      }}>
+        Loading office...
       </div>
     )
   }
