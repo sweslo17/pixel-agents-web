@@ -1,57 +1,56 @@
-# Contributing to Pixel Agents
+# Contributing to Pixel Agents Web
 
-Thanks for your interest in contributing to Pixel Agents! All contributions are welcome — features, bug fixes, documentation improvements, refactors, and more.
+Thanks for your interest in contributing! All contributions are welcome — features, bug fixes, documentation improvements, and more.
 
-This project is licensed under the [MIT License](LICENSE), so your contributions will be too. No CLA or DCO is required.
+This project is licensed under the [MIT License](LICENSE), so your contributions will be too.
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (LTS recommended)
-- [VS Code](https://code.visualstudio.com/) (v1.109.0 or later)
+- [Node.js](https://nodejs.org/) 20 or later
 
 ### Setup
 
 ```bash
-git clone https://github.com/pablodelucca/pixel-agents.git
-cd pixel-agents
+git clone https://github.com/sweslo17/pixel-agents-web.git
+cd pixel-agents-web
 npm install
-cd webview-ui && npm install && cd ..
 npm run build
 ```
 
-Then press **F5** in VS Code to launch the Extension Development Host.
-
-## Development Workflow
-
-For development with live rebuilds, run:
+### Development
 
 ```bash
-npm run watch
+npm run dev    # runs server + client concurrently with hot reload
 ```
 
-This starts parallel watchers for both the extension backend (esbuild) and TypeScript type-checking.
+The Fastify server runs on port 3000 and the Vite dev server on port 5173.
 
-> **Note:** The webview (Vite) is not included in `watch` — after changing webview code, run `npm run build:webview` or the full `npm run build`.
-
-### Project Structure
+## Project Structure
 
 | Directory | Description |
 |---|---|
-| `src/` | Extension backend — Node.js, VS Code API |
-| `webview-ui/` | React + TypeScript frontend (separate Vite project) |
+| `shared/` | Shared types, protocol, constants (npm workspace) |
+| `server/` | Fastify HTTP + WebSocket server (npm workspace) |
+| `client/` | React SPA with Canvas rendering (npm workspace, Vite) |
 | `scripts/` | Asset extraction and generation tooling |
-| `assets/` | Bundled sprites, catalog, and default layout |
 
 ## Code Guidelines
+
 ### Constants
 
-**No unused locals or parameters** (`noUnusedLocals` and `noUnusedParameters` are enabled): All magic numbers and strings are centralized — don't add inline constants to source files:
+All magic numbers and strings are centralized — don't add inline constants:
 
-- **Extension backend:** `src/constants.ts`
-- **Webview:** `webview-ui/src/constants.ts`
-- **CSS variables:** `webview-ui/src/index.css` `:root` block (`--pixel-*` properties)
+- **Shared**: `shared/src/constants.ts` — timing, parsing, layout, server config
+- **Client**: `client/src/constants.ts` — grid, animation, rendering, camera, zoom, editor
+- **CSS variables**: `client/src/index.css` `:root` block (`--pixel-*` properties)
+
+### TypeScript
+
+- No `enum` — use `as const` objects (`erasableSyntaxOnly`)
+- `import type` required for type-only imports (`verbatimModuleSyntax`)
+- `noUnusedLocals` / `noUnusedParameters` are enabled
 
 ### UI Styling
 
@@ -66,29 +65,15 @@ The project uses a pixel art aesthetic. All overlays should use:
 
 1. Fork the repo and create a feature branch from `main`
 2. Make your changes
-3. Run the full build to verify everything passes:
+3. Run the full build to verify:
    ```bash
    npm run build
    ```
-   This runs type-checking, linting, esbuild (extension), and Vite (webview).
 4. Open a pull request against `main` with:
    - A clear description of what changed and why
-   - How you tested the changes (steps to reproduce / verify)
+   - How you tested the changes
    - **Screenshots or GIFs for any UI changes**
-
-## Reporting Bugs
-
-[Open an issue](https://github.com/pablodelucca/pixel-agents/issues) with:
-
-- What you expected to happen
-- What actually happened
-- Steps to reproduce
-- VS Code version and OS
-
-## Feature Requests
-
-Have an idea? [Open an issue](https://github.com/pablodelucca/pixel-agents/issues) to discuss it before building. This helps avoid duplicate work and ensures the feature fits the project's direction.
 
 ## Code of Conduct
 
-This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).

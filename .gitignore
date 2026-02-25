@@ -1,11 +1,7 @@
-out
-dist
 node_modules
-.vscode-test/
-*.vsix
+dist
+*.tsbuildinfo
 .claude/
-/logs
-/sprites-export
 .env
 .worktrees/
-*.tsbuildinfo
+/logs
